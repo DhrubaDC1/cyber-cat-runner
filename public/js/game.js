@@ -68,10 +68,19 @@ class CyberGameEngine {
     this.initEntities();
     this.setupResizeHandler();
     this.setupInputListeners();
+    this.setupAuthListeners();
     this.loadHighscoreAndStats();
     this.renderShopSkins();
     this.updateActiveThemeStyle(window.CyberStorage.getActiveTheme());
     
+    // Check Core Identity registration on startup
+    if (!window.CyberStorage.data.isRegistered) {
+      setTimeout(() => this.switchScreen('register'), 100);
+    } else {
+      // Offline background sync syncs local progress if server is reachable
+      setTimeout(() => window.CyberAuth.syncProgress().then(() => this.loadHighscoreAndStats()).catch(console.warn), 1000);
+    }
+
     // Start Menu Loop
     this.lastTime = performance.now();
     requestAnimationFrame((t) => this.loop(t));
@@ -94,7 +103,9 @@ class CyberGameEngine {
       credits: document.getElementById('screen-credits'),
       portraitLock: document.getElementById('portrait-lock-overlay'),
       shopSkinsSection: document.getElementById('shop-skins-section'),
-      shopTrailsSection: document.getElementById('shop-trails-section')
+      shopTrailsSection: document.getElementById('shop-trails-section'),
+      leaderboard: document.getElementById('screen-leaderboard'),
+      register: document.getElementById('screen-register')
     };
     
     this.buttons = {
@@ -113,7 +124,9 @@ class CyberGameEngine {
       rt: document.getElementById('rt-btn'),
       theme: document.getElementById('theme-btn'),
       tabSkins: document.getElementById('tab-skins'),
-      tabTrails: document.getElementById('tab-trails')
+      tabTrails: document.getElementById('tab-trails'),
+      leaderboardToggle: document.getElementById('btn-leaderboard-toggle'),
+      leaderboardClose: document.getElementById('btn-leaderboard-close')
     };
 
     this.hud = {
@@ -191,6 +204,8 @@ class CyberGameEngine {
 
     const isRtEnabled = window.CyberStorage.isRayTracingEnabled();
     this.updateRayTracingButtonUI(isRtEnabled);
+
+    this.updateHeaderProfileBadge();
   }
 
   updateMuteButtonUI(isMuted) {
@@ -361,6 +376,20 @@ class CyberGameEngine {
     });
 
 
+    // Rankings Overlays triggers
+    if (this.buttons.leaderboardToggle) {
+      this.buttons.leaderboardToggle.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        this.switchScreen('leaderboard');
+      });
+    }
+    if (this.buttons.leaderboardClose) {
+      this.buttons.leaderboardClose.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        this.switchScreen('menu');
+      });
+    }
+
     // Shop tabs togglers
     this.buttons.tabSkins.addEventListener('click', () => {
       this.activeTab = 'skins';
@@ -455,6 +484,13 @@ class CyberGameEngine {
       this.renderShopSkins();
     } else if (screenName === 'credits') {
       this.screens.credits.classList.add('active');
+    } else if (screenName === 'leaderboard') {
+      this.state = 'LEADERBOARD';
+      this.screens.leaderboard.classList.add('active');
+      this.renderLeaderboardTable();
+    } else if (screenName === 'register') {
+      this.state = 'REGISTER';
+      this.screens.register.classList.add('active');
     }
   }
 
@@ -510,6 +546,7 @@ class CyberGameEngine {
     if (this.gemsThisRun > 0) {
       window.CyberStorage.addGems(this.gemsThisRun);
       this.gemsThisRun = 0;
+      window.CyberAuth.syncProgress().catch(console.warn);
     }
     this.switchScreen('menu');
   }
@@ -532,6 +569,9 @@ class CyberGameEngine {
     // Sync statistics
     const isNewRecord = window.CyberStorage.updateHighScore(this.score);
     window.CyberStorage.addGems(this.gemsThisRun);
+    
+    // Trigger transparent score upload to db Rankings
+    window.CyberAuth.syncProgress().catch(console.warn);
     
     // Update GameOver screen data
     this.overStats.distance.innerText = Math.floor(this.distance);
@@ -703,6 +743,7 @@ class CyberGameEngine {
           this.player.equipSkin(skin);
           this.loadHighscoreAndStats();
           this.renderShopSkins();
+          window.CyberAuth.syncProgress().catch(console.warn);
         }
       } else {
         window.CyberAudio.playClick();
@@ -774,6 +815,7 @@ class CyberGameEngine {
           window.CyberStorage.equipTrail(trail.id);
           this.loadHighscoreAndStats();
           this.renderShopTrails();
+          window.CyberAuth.syncProgress().catch(console.warn);
         }
       } else {
         window.CyberAudio.playClick();
@@ -1304,6 +1346,310 @@ class CyberGameEngine {
       ctx.fillText(`POWERUPS : ${this.powerupsPool.length}`, 15, 135);
       ctx.restore();
     }
+  }
+
+  // --- 7. NEW CYBER CREDENTIALS & RANKINGS SYSTEM CONTROLLERS ---
+
+  updateHeaderProfileBadge() {
+    const badge = document.getElementById('header-profile-badge');
+    const usernameEl = document.getElementById('header-username');
+    const secureBtn = document.getElementById('btn-header-secure');
+
+    if (!badge) return;
+
+    if (window.CyberStorage.data.isRegistered) {
+      badge.style.display = 'inline-flex';
+      usernameEl.innerText = window.CyberStorage.data.username;
+      
+      if (window.CyberStorage.data.isGuest) {
+        secureBtn.style.display = 'inline-block';
+        badge.style.borderColor = 'rgba(255, 0, 127, 0.3)';
+        usernameEl.style.color = '#ffffff';
+      } else {
+        secureBtn.style.display = 'none';
+        badge.style.borderColor = 'rgba(57, 255, 20, 0.35)';
+        usernameEl.style.color = '#39ff14';
+      }
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  setupAuthListeners() {
+    const nextBtn = document.getElementById('btn-register-next');
+    const secureBtn = document.getElementById('btn-auth-secure');
+    const skipBtn = document.getElementById('btn-auth-skip');
+    const submitBtn = document.getElementById('btn-auth-submit');
+    const regBackBtn = document.getElementById('btn-auth-back');
+    const loginSubmitBtn = document.getElementById('btn-login-submit');
+    const loginBackBtn = document.getElementById('btn-login-back');
+    
+    const showLoginLink = document.getElementById('link-show-login');
+    const choiceBackLink = document.getElementById('link-choice-back');
+    const headerSecureBtn = document.getElementById('btn-header-secure');
+
+    const nameInput = document.getElementById('input-display-name');
+    const pwdInput = document.getElementById('input-password');
+    const loginUser = document.getElementById('input-login-username');
+    const loginPwd = document.getElementById('input-login-password');
+
+    const switchAuthStep = (stepName) => {
+      document.querySelectorAll('.auth-step').forEach(step => {
+        step.classList.remove('active');
+      });
+      document.getElementById(`register-step-${stepName}`).classList.add('active');
+    };
+
+    // Show Login screen trigger
+    if (showLoginLink) {
+      showLoginLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.CyberAudio.playClick();
+        document.getElementById('login-error-msg').innerText = '';
+        switchAuthStep('login');
+      });
+    }
+
+    // Login screen return trigger
+    if (loginBackBtn) {
+      loginBackBtn.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        switchAuthStep('name');
+      });
+    }
+
+    // Step 1: Input Name -> Generate Handle & Choice step
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        const name = nameInput.value.trim();
+        const errorEl = document.getElementById('name-error-msg');
+        if (!name) {
+          errorEl.innerText = 'ENTER INITIALIZATION DESIG TO INITIATE CORE';
+          return;
+        }
+        errorEl.innerText = '';
+        window.CyberAudio.playClick();
+
+        const username = window.CyberAuth.generateCyberUsername(name);
+        document.getElementById('generated-username').innerText = username;
+        document.getElementById('password-target-username').innerText = username;
+        
+        switchAuthStep('choice');
+      });
+    }
+
+    // Choice back return trigger
+    if (choiceBackLink) {
+      choiceBackLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.CyberAudio.playClick();
+        switchAuthStep('name');
+      });
+    }
+
+    // Choice Skip -> Skip & Play as Guest
+    if (skipBtn) {
+      skipBtn.addEventListener('click', async () => {
+        window.CyberAudio.playClick();
+        const displayName = nameInput.value.trim() || 'Runner';
+        
+        skipBtn.innerText = 'CONNECTING...';
+        skipBtn.disabled = true;
+
+        const res = await window.CyberAuth.registerGuest(displayName);
+        
+        skipBtn.innerText = 'SKIP & PLAY (GUEST)';
+        skipBtn.disabled = false;
+
+        if (res.success) {
+          this.switchScreen('menu');
+          this.loadHighscoreAndStats();
+        }
+      });
+    }
+
+    // Choice -> Secure core passcode screen
+    if (secureBtn) {
+      secureBtn.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        document.getElementById('register-error-msg').innerText = '';
+        switchAuthStep('password');
+      });
+    }
+
+    // Register Back trigger
+    if (regBackBtn) {
+      regBackBtn.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        switchAuthStep('choice');
+      });
+    }
+
+    // Step 3 Submit -> Register Secure Account
+    if (submitBtn) {
+      submitBtn.onclick = async () => {
+        const password = pwdInput.value;
+        const errorEl = document.getElementById('register-error-msg');
+        if (!password || password.length < 4) {
+          errorEl.innerText = 'PASSCODE KEY MUST EXCEED 3 SYMBOLS';
+          return;
+        }
+        errorEl.innerText = '';
+        window.CyberAudio.playClick();
+
+        submitBtn.innerText = 'ENCRYPTING CORE...';
+        submitBtn.disabled = true;
+
+        const username = document.getElementById('generated-username').innerText;
+        const displayName = nameInput.value.trim();
+
+        const res = await window.CyberAuth.registerSecure(displayName, username, password);
+
+        submitBtn.innerText = 'ENCRYPT PROFILE';
+        submitBtn.disabled = false;
+
+        if (res.success) {
+          pwdInput.value = '';
+          this.switchScreen('menu');
+          this.loadHighscoreAndStats();
+        } else {
+          errorEl.innerText = res.error.toUpperCase();
+        }
+      };
+    }
+
+    // Step 4 Submit -> Login to Secure Account
+    if (loginSubmitBtn) {
+      loginSubmitBtn.addEventListener('click', async () => {
+        const username = loginUser.value.trim();
+        const password = loginPwd.value;
+        const errorEl = document.getElementById('login-error-msg');
+        
+        if (!username || !password) {
+          errorEl.innerText = 'CREDENTIAL FIELD INCOMPLETE';
+          return;
+        }
+        errorEl.innerText = '';
+        window.CyberAudio.playClick();
+
+        loginSubmitBtn.innerText = 'CONNECTING CORE...';
+        loginSubmitBtn.disabled = true;
+
+        const res = await window.CyberAuth.login(username, password);
+
+        loginSubmitBtn.innerText = 'CONNECT CORE';
+        loginSubmitBtn.disabled = false;
+
+        if (res.success) {
+          loginUser.value = '';
+          loginPwd.value = '';
+          this.switchScreen('menu');
+          this.loadHighscoreAndStats();
+        } else {
+          errorEl.innerText = res.error.toUpperCase();
+        }
+      });
+    }
+
+    // Main Menu Profile Secure button trigger -> Upgrade current Guest profile
+    if (headerSecureBtn) {
+      headerSecureBtn.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        
+        const currentUsername = window.CyberStorage.data.username;
+        document.getElementById('generated-username').innerText = currentUsername;
+        document.getElementById('password-target-username').innerText = currentUsername;
+        nameInput.value = window.CyberStorage.data.displayName;
+
+        document.getElementById('register-error-msg').innerText = '';
+        pwdInput.value = '';
+        
+        this.switchScreen('register');
+        switchAuthStep('password');
+        
+        // Custom Back button context for active upgrades
+        const originalRegBack = regBackBtn.onclick;
+        regBackBtn.onclick = (e) => {
+          e.preventDefault();
+          window.CyberAudio.playClick();
+          this.switchScreen('menu');
+          // Restore default back click handler
+          regBackBtn.onclick = originalRegBack; 
+        };
+
+        // Custom passcode encrypt button context for active upgrades
+        const originalRegSubmit = submitBtn.onclick;
+        submitBtn.onclick = async () => {
+          const password = pwdInput.value;
+          const errorEl = document.getElementById('register-error-msg');
+          if (!password || password.length < 4) {
+            errorEl.innerText = 'PASSCODE KEY MUST EXCEED 3 SYMBOLS';
+            return;
+          }
+          errorEl.innerText = '';
+          window.CyberAudio.playClick();
+
+          submitBtn.innerText = 'SECURING CORE...';
+          submitBtn.disabled = true;
+
+          const res = await window.CyberAuth.upgradeGuest(password);
+
+          submitBtn.innerText = 'ENCRYPT PROFILE';
+          submitBtn.disabled = false;
+
+          if (res.success) {
+            pwdInput.value = '';
+            // Restore default submit handler
+            submitBtn.onclick = originalRegSubmit;
+            this.switchScreen('menu');
+            this.loadHighscoreAndStats();
+          } else {
+            errorEl.innerText = res.error.toUpperCase();
+          }
+        };
+      });
+    }
+  }
+
+  async renderLeaderboardTable() {
+    const listEl = document.getElementById('leaderboard-list');
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div class="leaderboard-empty">CONTACTING MAINFRAME RANKINGS...</div>';
+
+    const rankings = await window.CyberAuth.getLeaderboard();
+    
+    if (!rankings || rankings.length === 0) {
+      listEl.innerHTML = '<div class="leaderboard-empty">RANKINGS DATABASE OFFLINE. CORE STACK EMPTY.</div>';
+      return;
+    }
+
+    listEl.innerHTML = '';
+    const currentUsername = window.CyberStorage.data.username;
+
+    rankings.forEach(row => {
+      const rowEl = document.createElement('div');
+      
+      const isSelf = row.username === currentUsername;
+      const isTopRank = row.rank <= 3;
+      
+      rowEl.className = `leaderboard-row ${isSelf ? 'current-player' : ''} ${isTopRank ? 'rank-' + row.rank : ''}`;
+      
+      let rankDisplay = `#${row.rank}`;
+      if (row.rank === 1) rankDisplay = '🥇 #1';
+      else if (row.rank === 2) rankDisplay = '🥈 #2';
+      else if (row.rank === 3) rankDisplay = '🥉 #3';
+
+      const statusTag = row.isGuest ? ' [GUEST]' : '';
+
+      rowEl.innerHTML = `
+        <span class="rank-col">${rankDisplay}</span>
+        <span class="runner-col" title="${row.username}">${row.displayName}${statusTag}</span>
+        <span class="score-col font-digit">${String(row.highScore).padStart(5, '0')}</span>
+        <span class="gems-col font-digit">💎 ${row.gems}</span>
+      `;
+      listEl.appendChild(rowEl);
+    });
   }
 }
 

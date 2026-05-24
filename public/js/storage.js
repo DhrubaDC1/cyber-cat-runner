@@ -129,6 +129,15 @@ class CyberSaveManager {
             return orig;
           });
         }
+
+        // 3. Backward compatible credentials initializations
+        if (parsed.isRegistered === undefined) {
+          parsed.authToken = null;
+          parsed.username = '';
+          parsed.displayName = '';
+          parsed.isGuest = true;
+          parsed.isRegistered = false;
+        }
         
         return parsed;
       }
@@ -147,7 +156,12 @@ class CyberSaveManager {
       audioEnabled: true,
       rayTracingEnabled: false, // Default to off
       skins: JSON.parse(JSON.stringify(DEFAULT_SKINS)),
-      trails: JSON.parse(JSON.stringify(DEFAULT_TRAILS))
+      trails: JSON.parse(JSON.stringify(DEFAULT_TRAILS)),
+      authToken: null,
+      username: '',
+      displayName: '',
+      isGuest: true,
+      isRegistered: false
     };
   }
 

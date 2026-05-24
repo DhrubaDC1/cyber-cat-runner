@@ -6,3 +6,7 @@ dist/
 
 # System files
 .DS_Store
+
+# SQLite database
+*.db
+*.db-journal

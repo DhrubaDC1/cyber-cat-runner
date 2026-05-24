@@ -4,11 +4,21 @@
   "description": "A premium retro-futuristic arcade runner featuring a neon cybernetic cat.",
   "main": "index.html",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "concurrently \"node server.js\" \"vite --host\"",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
+    "concurrently": "^8.2.2",
     "vite": "^5.2.0"
   }
 }

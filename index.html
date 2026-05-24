@@ -44,6 +44,12 @@
           <span class="stat-label">HIGH</span>
           <span id="global-hi-score">00000</span>
         </div>
+        <!-- Sleek Profile Status Badge -->
+        <div id="header-profile-badge" class="header-profile-badge glass-panel font-digit">
+          <span class="badge-avatar">👤</span>
+          <span id="header-username" class="badge-username">SYS_RUNNER</span>
+          <button id="btn-header-secure" class="btn-micro-secure" title="Secure core profile with password">SECURE CORE</button>
+        </div>
         <button id="theme-btn" class="icon-btn" aria-label="Switch Environment" title="Switch Neon Environment">
           <span class="icon-theme">🎨</span>
         </button>
@@ -74,6 +80,9 @@
             </button>
             <button id="btn-shop-toggle" class="btn btn-secondary">
               <span>SKINS & TECH</span>
+            </button>
+            <button id="btn-leaderboard-toggle" class="btn btn-secondary btn-glow-border">
+              <span>GLOBAL RANKINGS</span>
             </button>
             <button id="btn-credits-toggle" class="btn btn-tertiary">
               <span>CONTROLS</span>
@@ -280,6 +289,111 @@
           </div>
         </div>
       </div>
+
+      <!-- SCREEN 7: Global Leaderboard Overlay -->
+      <div id="screen-leaderboard" class="viewport-overlay">
+        <div class="overlay-content glass-panel panel-modal">
+          <div class="overlay-header">
+            <h2>MAINFRAME RANKINGS</h2>
+            <button id="btn-leaderboard-close" class="close-btn">&times;</button>
+          </div>
+          
+          <div class="leaderboard-container">
+            <div class="leaderboard-table-header font-digit">
+              <span class="rank-col">RANK</span>
+              <span class="name-col">RUNNER</span>
+              <span class="score-col">MAX SCORE</span>
+              <span class="gems-col">GEMS</span>
+            </div>
+            
+            <div id="leaderboard-list" class="leaderboard-list">
+              <!-- Dynamically populated rows from server -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 8: User Registration Overlay (First time) -->
+      <div id="screen-register" class="viewport-overlay">
+        <div class="overlay-content glass-panel panel-modal text-center">
+          <h2 class="glow-cyan animate-pulse">SYS.INIT // CORE PROFILE</h2>
+          <p class="subtitle">ESTABLISH MAIN MAINFRAME CONNECTION</p>
+          
+          <!-- STEP 1: ENTER NAME -->
+          <div id="register-step-name" class="auth-step active">
+            <p class="auth-instructions" style="margin-bottom: 20px; font-size: 14px;">Enter your handle to initialize your cybernetic core.</p>
+            <div class="input-group">
+              <input type="text" id="input-display-name" class="cyber-input" placeholder="ENTER YOUR NAME" maxlength="12" autocomplete="off">
+            </div>
+            <div id="name-error-msg" class="auth-error-msg text-glow-red" style="margin-top: 8px;"></div>
+            <button id="btn-register-next" class="btn btn-primary btn-glow-cyan" style="margin-top: 24px;">
+              <span>GENERATE CODE</span>
+            </button>
+            <div class="auth-toggle-link" style="margin-top: 20px;">
+              <a href="#" id="link-show-login" class="cyber-link">TRANSMIT EXISTING PROFILE (LOG IN)</a>
+            </div>
+          </div>
+
+          <!-- STEP 2: USERNAME CHOSEN / ACTION CHOICE -->
+          <div id="register-step-choice" class="auth-step">
+            <p class="auth-instructions" style="margin-bottom: 12px; font-size: 14px;">Quantum handle established in system logs:</p>
+            <div class="generated-username-box font-digit">
+              <span id="generated-username" class="glowing-text-cyan">GRID_RUNNER_82</span>
+            </div>
+            <p class="auth-details" style="font-size: 11px; margin: 20px 0; color: rgba(255,255,255,0.6); line-height: 1.5;">
+              Would you like to encrypt this profile with a security password to save progress permanently in the global leaderboard databases, or skip and play as a temporary guest?
+            </p>
+            <div class="auth-actions">
+              <button id="btn-auth-secure" class="btn btn-primary btn-glow">
+                <span>SECURE CORE</span>
+              </button>
+              <button id="btn-auth-skip" class="btn btn-secondary">
+                <span>SKIP & PLAY (GUEST)</span>
+              </button>
+            </div>
+            <div class="auth-toggle-link" style="margin-top: 20px;">
+              <a href="#" id="link-choice-back" class="cyber-link">◀ RERUN IDENTITY PROTOCOL</a>
+            </div>
+          </div>
+
+          <!-- STEP 3: PASSWORD INPUT FOR SECURE -->
+          <div id="register-step-password" class="auth-step">
+            <p class="auth-instructions" style="margin-bottom: 16px; font-size: 14px;">Define core security passcode for handle:<br><span id="password-target-username" class="glow-magenta font-digit">GRID_RUNNER_82</span></p>
+            <div class="input-group">
+              <input type="password" id="input-password" class="cyber-input" placeholder="ENTER SECURE PASSCODE" autocomplete="new-password">
+            </div>
+            <div id="register-error-msg" class="auth-error-msg text-glow-red" style="margin-top: 10px;"></div>
+            <div class="auth-actions" style="margin-top: 24px;">
+              <button id="btn-auth-submit" class="btn btn-primary btn-glow-cyan">
+                <span>ENCRYPT PROFILE</span>
+              </button>
+              <button id="btn-auth-back" class="btn btn-secondary">
+                <span>BACK</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 4: LOGIN FORM -->
+          <div id="register-step-login" class="auth-step">
+            <p class="auth-instructions" style="margin-bottom: 20px; font-size: 14px;">Transmit security mainframe credentials.</p>
+            <div class="input-group" style="margin-bottom: 12px;">
+              <input type="text" id="input-login-username" class="cyber-input" placeholder="ENTER USERNAME" autocomplete="username">
+            </div>
+            <div class="input-group">
+              <input type="password" id="input-login-password" class="cyber-input" placeholder="ENTER SECURE PASSCODE" autocomplete="current-password">
+            </div>
+            <div id="login-error-msg" class="auth-error-msg text-glow-red" style="margin-top: 10px;"></div>
+            <div class="auth-actions" style="margin-top: 24px;">
+              <button id="btn-login-submit" class="btn btn-primary btn-glow">
+                <span>CONNECT CORE</span>
+              </button>
+              <button id="btn-login-back" class="btn btn-secondary">
+                <span>BACK</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Bottom Status Bar -->
@@ -305,6 +419,7 @@
   <!-- Script Modules -->
   <script src="js/raycaster.js"></script>
   <script src="js/storage.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/particles.js"></script>
   <script src="js/entities.js"></script>
