@@ -1254,6 +1254,42 @@ class CyberGameEngine {
     ctx.stroke();
     ctx.restore();
 
+    // --- PREMIUM GROUND MIRROR REFLECTION ---
+    if (this.state === 'PLAYING' || this.state === 'PAUSED' || this.state === 'GAMEOVER') {
+      ctx.save();
+      // Clip reflections to exist strictly below the groundY line
+      ctx.beginPath();
+      ctx.rect(0, groundY + 2, w, h - groundY);
+      ctx.clip();
+      
+      // Translate to horizon, mirror/flip Y axis, squash to simulate reflection angle perspective
+      ctx.translate(0, groundY);
+      ctx.scale(1, -0.42);
+      ctx.translate(0, -groundY);
+      
+      // Muted opacity for reflection gloss feedback
+      ctx.globalAlpha = 0.22;
+      
+      // Render mirrored twins
+      this.collectibles.forEach(gem => gem.draw());
+      this.powerupsPool.forEach(pu => pu.draw());
+      this.obstacles.forEach(obs => obs.draw());
+      this.player.draw();
+      
+      ctx.restore();
+      ctx.globalAlpha = 1.0;
+      
+      // Dark gradient glaze overlaying reflections to blend them into dark horizon floor
+      ctx.save();
+      const glaze = ctx.createLinearGradient(0, groundY, 0, h);
+      glaze.addColorStop(0, 'rgba(0, 0, 0, 0.45)');
+      glaze.addColorStop(0.3, 'rgba(12, 4, 30, 0.65)');
+      glaze.addColorStop(1, 'rgba(0, 0, 0, 0.96)');
+      ctx.fillStyle = glaze;
+      ctx.fillRect(0, groundY + 2, w, h - groundY);
+      ctx.restore();
+    }
+
     // Render pools
     this.collectibles.forEach(gem => gem.draw());
     this.powerupsPool.forEach(pu => pu.draw());
