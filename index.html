@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>CYBER CAT // Neon Synthwave Runner</title>
+  <meta name="description" content="A premium 60fps retro-futuristic arcade runner featuring a neon cybernetic cat. Jump, double jump, and slide through the synthwave grid!">
+  
+  <!-- Preconnect to Google Fonts for performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Load Orbitron for headings/arcade vibes, and Outfit for clean UI typography -->
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  
+  <!-- Styling sheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="neon-sunset-theme">
+  <!-- Dynamic grid background for the entire application interface -->
+  <div class="app-background">
+    <div class="sky-gradient"></div>
+    <div class="grid-overlay"></div>
+    <div class="ambient-glow"></div>
+  </div>
+
+  <!-- Main Application Wrapper -->
+  <main id="app-container" class="glass-container">
+    
+    <!-- UI Header / Top Navigation Bar -->
+    <header class="app-header">
+      <div class="logo">
+        <span class="cyber-tag">SYS.SYS //</span>
+        <h1>CYBER CAT</h1>
+      </div>
+      <div class="header-stats">
+        <div class="stat-badge gem-stat">
+          <span class="stat-icon">💎</span>
+          <span id="global-gems">0</span>
+        </div>
+        <div class="stat-badge hi-score-stat">
+          <span class="stat-label">HIGH</span>
+          <span id="global-hi-score">00000</span>
+        </div>
+        <button id="theme-btn" class="icon-btn" aria-label="Switch Environment" title="Switch Neon Environment">
+          <span class="icon-theme">🎨</span>
+        </button>
+        <button id="rt-btn" class="icon-btn" aria-label="Toggle Ray Tracing" title="Toggle Ray Tracing Shadows">
+          <span class="icon-rt">💡</span>
+        </button>
+        <button id="mute-btn" class="icon-btn" aria-label="Mute Audio">
+          <span class="icon-volume">🔊</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area: holds Canvas and Overlays -->
+    <section id="game-viewport">
+      <!-- HTML5 Canvas for the game drawing -->
+      <canvas id="game-canvas"></canvas>
+
+      <!-- SCREEN 1: Main Menu Overlay -->
+      <div id="screen-menu" class="viewport-overlay active">
+        <div class="overlay-content text-center">
+          <h2 class="glowing-title animate-title">CYBER CAT</h2>
+          <p class="subtitle">NEON SYNTHWAVE RUNNER // V1.0.0</p>
+          
+          <div class="menu-actions">
+            <button id="btn-play" class="btn btn-primary btn-glow">
+              <span class="btn-text">INITIATE RUN</span>
+              <span class="btn-laser"></span>
+            </button>
+            <button id="btn-shop-toggle" class="btn btn-secondary">
+              <span>SKINS & TECH</span>
+            </button>
+            <button id="btn-credits-toggle" class="btn btn-tertiary">
+              <span>CONTROLS</span>
+            </button>
+          </div>
+          
+          <div class="character-preview-card glass-panel">
+            <h3 class="panel-title">ACTIVE RUNNER</h3>
+            <div class="preview-display">
+              <div class="preview-sprite-wrapper">
+                <canvas id="menu-sprite-canvas" width="120" height="80"></canvas>
+              </div>
+              <div class="preview-info">
+                <h4 id="active-skin-name">Neon Classic</h4>
+                <p id="active-skin-desc">The standard cyber-feline model. Equipped with quantum jump boosters.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 2: Skin Shop / Inventory Overlay -->
+      <div id="screen-shop" class="viewport-overlay">
+        <div class="overlay-content">
+          <div class="overlay-header">
+            <h2>CYBERNETIC COATINGS</h2>
+            <button id="btn-shop-close" class="close-btn">&times;</button>
+          </div>
+          
+          <div class="shop-tabs">
+            <button id="tab-skins" class="shop-tab active">RUNNER SHELLS</button>
+            <button id="tab-trails" class="shop-tab">ENGINE TRAILS</button>
+          </div>
+          
+          <div class="shop-grid-container">
+            <!-- Theme Selection -->
+            <div class="shop-section">
+              <h3 class="shop-section-title">ENVIRONMENTS</h3>
+              <div class="themes-selector">
+                <button class="theme-card active" data-theme="neon-sunset">
+                  <div class="theme-preview sunset"></div>
+                  <span>Neon Sunset</span>
+                </button>
+                <button class="theme-card" data-theme="laser-green">
+                  <div class="theme-preview green"></div>
+                  <span>Laser Matrix</span>
+                </button>
+                <button class="theme-card" data-theme="frozen-grid">
+                  <div class="theme-preview frozen"></div>
+                  <span>Frozen Grid</span>
+                </button>
+                <button class="theme-card" data-theme="cyber-gold">
+                  <div class="theme-preview gold"></div>
+                  <span>Cyber Gold</span>
+                </button>
+              </div>
+            </div>
+
+
+            <!-- Skin Selection Section -->
+            <div id="shop-skins-section" class="shop-section active-tab-content">
+              <h3 class="shop-section-title">RUNNER SHELLS</h3>
+              <div id="skins-grid" class="skins-grid">
+                <!-- Skins will be generated dynamically by JS -->
+              </div>
+            </div>
+
+            <!-- Trail Selection Section -->
+            <div id="shop-trails-section" class="shop-section">
+              <h3 class="shop-section-title">EXHAUST TRAILS</h3>
+              <div id="trails-grid" class="skins-grid">
+                <!-- Trails will be generated dynamically by JS -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: HUD Overlay (Active Game Play) -->
+      <div id="hud-overlay" class="viewport-overlay">
+        <div class="hud-top">
+          <div class="score-display">
+            <span class="score-label">CORE SCORE</span>
+            <span id="hud-score">00000</span>
+          </div>
+          <div class="hud-stats-group">
+            <div class="hud-multiplier" id="hud-multiplier-container">
+              <span class="mult-label">SPEED</span>
+              <span id="hud-multiplier">1.0x</span>
+            </div>
+            <div class="hud-gems">
+              <span class="gems-label">GEMS</span>
+              <span id="hud-gems-count">💎 0</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Power-ups list -->
+        <div id="hud-powerups-list" class="hud-powerups-list">
+          <!-- Dynamic powerup badges will slide in here from JS -->
+        </div>
+
+        <!-- Warning flash indicators (e.g. speed warning or barrier warning) -->
+        <div id="warning-flash" class="warning-flash">SPEED LIMIT EXCEEDED</div>
+
+        <!-- Virtual Touch Controls for Mobile/Tablet -->
+        <div class="virtual-controls">
+          <button id="ctrl-jump" class="ctrl-btn" aria-label="Jump / Double Jump">
+            <span class="ctrl-arrow">▲</span>
+            <span class="ctrl-label">JUMP</span>
+          </button>
+          <button id="ctrl-slide" class="ctrl-btn" aria-label="Slide / Duck">
+            <span class="ctrl-arrow">▼</span>
+            <span class="ctrl-label">SLIDE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SCREEN 4: Pause Overlay -->
+      <div id="screen-pause" class="viewport-overlay">
+        <div class="overlay-content glass-panel panel-modal text-center">
+          <h2 class="glow-cyan">RUN SUSPENDED</h2>
+          <p class="subtitle font-digit text-glow-cyan">SYSTEM STANDBY // SCORE: <span id="pause-score">0</span></p>
+          <div class="pause-actions">
+            <button id="btn-resume" class="btn btn-primary btn-glow-cyan">
+              <span>RESUME SYSTEM</span>
+            </button>
+            <button id="btn-pause-restart" class="btn btn-secondary">
+              <span>REBOOT RUN</span>
+            </button>
+            <button id="btn-pause-menu" class="btn btn-tertiary">
+              <span>TERMINATE TO MENU</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 5: Game Over / Crash Overlay -->
+      <div id="screen-gameover" class="viewport-overlay">
+        <div class="overlay-content glass-panel panel-modal text-center">
+          <h2 class="glow-red animate-pulse">CONNECTION CRASHED</h2>
+          <p class="subtitle font-digit text-glow-red">RUN TERMINATED // CORRUPTED AT LAYER <span id="over-distance">0</span>M</p>
+          
+          <div class="gameover-stats">
+            <div class="go-stat">
+              <span class="go-stat-label">FINAL SCORE</span>
+              <span id="over-score" class="go-stat-val glow-text">00000</span>
+            </div>
+            <div class="go-stat">
+              <span class="go-stat-label">GEMS HARVESTED</span>
+              <span id="over-gems" class="go-stat-val glow-text">0</span>
+            </div>
+            <div class="go-stat new-record-badge" id="new-high-score-badge">
+              <span>NEW RECORD!</span>
+            </div>
+          </div>
+          
+          <div class="gameover-actions">
+            <button id="btn-restart" class="btn btn-primary btn-glow-red">
+              <span class="btn-text">REBOOT RUN</span>
+            </button>
+            <button id="btn-gameover-shop" class="btn btn-secondary">
+              <span>SKIN REPAIR</span>
+            </button>
+            <button id="btn-gameover-menu" class="btn btn-tertiary">
+              <span>RETURN TO MAIN</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 6: Controls / Credits Overlay -->
+      <div id="screen-credits" class="viewport-overlay">
+        <div class="overlay-content glass-panel panel-modal">
+          <div class="overlay-header">
+            <h2>SYSTEM DIRECTIVES</h2>
+            <button id="btn-credits-close" class="close-btn">&times;</button>
+          </div>
+          <div class="controls-guide-content">
+            <div class="control-row">
+              <div class="control-key">SPACE</div>
+              <div class="control-desc">JUMP (Tap again in mid-air to DOUBLE JUMP)</div>
+            </div>
+            <div class="control-row">
+              <div class="control-key">▲ or W</div>
+              <div class="control-desc">JUMP / DOUBLE JUMP</div>
+            </div>
+            <div class="control-row">
+              <div class="control-key">▼ or S</div>
+              <div class="control-desc">SLIDE / DUCK (Shrinks hitbox to fit under high obstacles)</div>
+            </div>
+            <div class="control-row">
+              <div class="control-key">P or ESC</div>
+              <div class="control-desc">PAUSE / SUSPEND RUN</div>
+            </div>
+            <div class="control-row mobile-row">
+              <div class="control-key">TOUCH</div>
+              <div class="control-desc">Use virtual buttons in bottom corners of screen on mobile.</div>
+            </div>
+            <div class="credits-footer">
+              <p>DESIGNED BY ANTIGRAVITY CO.</p>
+              <p>POWERED BY PURE HTML5 & WEB AUDIO API</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Status Bar -->
+    <footer class="app-footer">
+      <span class="footer-msg">CONNECTION STABLE // DUAL-FREQ JETPACK ON</span>
+      <span class="footer-fps" id="fps-counter">60 FPS</span>
+    </footer>
+  </main>
+
+  <!-- Portrait Rotation Lock Warning Overlay -->
+  <div id="portrait-lock-overlay">
+    <div class="lock-content glass-panel panel-modal text-center">
+      <div class="phone-icon-wrapper">
+        <span class="phone-icon">📱</span>
+        <span class="rotate-arrow">🔄</span>
+      </div>
+      <h2 class="glow-yellow">SYSTEM DIRECTIVE</h2>
+      <p class="subtitle font-digit text-glow-yellow">ROTATION REQUIRED</p>
+      <p class="lock-instructions">Rotate your device to Landscape mode for active runner command protocols.</p>
+    </div>
+  </div>
+
+  <!-- Script Modules -->
+  <script src="js/raycaster.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/particles.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/game.js"></script>
+</body>
+</html>
