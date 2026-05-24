@@ -22,169 +22,73 @@ class ParallaxBackground {
     
     this.stars = [];
     this.buildings = [];
-    this.clouds = [];
-    this.hovercars = [];
-    this.trains = [];
-    this.trainSpawnTimer = 0;
-    this.trainSpawnInterval = 6000; // spawn a monorail every 6 seconds
-    
-    this.animTime = 0;
     this.init();
   }
 
   init() {
-    const w = this.canvas.clientWidth || 800;
-    const h = this.canvas.clientHeight || 400;
-
-    // 1. Generate star field
+    // Generate star field
     this.stars = [];
     for (let i = 0; i < 40; i++) {
       this.stars.push({
-        x: Math.random() * w,
-        y: Math.random() * (h * 0.45),
+        x: Math.random() * this.canvas.clientWidth,
+        y: Math.random() * (this.canvas.clientHeight * 0.5),
         size: Math.random() * 2 + 0.5,
-        speed: Math.random() * 0.04 + 0.01,
+        speed: Math.random() * 0.05 + 0.01,
         brightness: Math.random() * 0.5 + 0.5
       });
     }
 
-    // 2. Generate soft background drifting clouds
-    this.clouds = [];
-    for (let i = 0; i < 5; i++) {
-      this.clouds.push({
-        x: Math.random() * w,
-        y: Math.random() * (h * 0.35),
-        width: Math.random() * 120 + 80,
-        height: Math.random() * 30 + 15,
-        speed: Math.random() * 0.06 + 0.02,
-        alpha: Math.random() * 0.05 + 0.02
-      });
-    }
-
-    // 3. Generate background flying hovercars
-    this.hovercars = [];
-    for (let i = 0; i < 6; i++) {
-      this.hovercars.push({
-        x: Math.random() * w,
-        y: Math.random() * (h * 0.4) + h * 0.15,
-        speed: (Math.random() * 0.4 + 0.15) * (Math.random() > 0.5 ? 1 : -1),
-        width: Math.random() * 6 + 6,
-        height: Math.random() * 2 + 1.5,
-        color: Math.random() > 0.5 ? '#00f0ff' : '#ff007f'
-      });
-    }
-
-    // 4. Generate skyline buildings (15 far dark ones, 8 midground detailed ones)
+    // Generate parallax skyline structures
     this.buildings = [];
-    // Far layer (slower, darker purple)
+    // Far layer (darker, slower)
     for (let i = 0; i < 15; i++) {
       this.buildings.push({
         x: i * 110 + Math.random() * 30,
-        width: Math.random() * 90 + 70,
-        height: Math.random() * 180 + 120,
-        speed: 0.12,
-        color: 'rgba(24, 8, 48, 0.5)', 
-        gridColor: 'rgba(255, 0, 127, 0.03)',
-        layer: 'far'
+        width: Math.random() * 80 + 60,
+        height: Math.random() * 150 + 100,
+        speed: 0.15,
+        color: 'rgba(36, 0, 70, 0.25)', // Deep Purple outline
+        gridColor: 'rgba(255, 0, 127, 0.04)'
       });
     }
-    // Mid layer (medium speed, detailed outline, neon trims, holograms)
-    for (let i = 0; i < 8; i++) {
-      const bannerColor = Math.random() > 0.5 ? '#ff007f' : '#00f0ff';
+    // Mid layer (brighter, medium speed)
+    for (let i = 0; i < 10; i++) {
       this.buildings.push({
-        x: i * 200 + Math.random() * 60,
-        width: Math.random() * 110 + 90,
-        height: Math.random() * 120 + 80,
-        speed: 0.35,
-        color: 'rgba(12, 4, 30, 0.85)',
-        gridColor: 'rgba(0, 240, 255, 0.05)',
-        laserTrim: Math.random() > 0.3,
-        laserTrimColor: Math.random() > 0.5 ? '#00f0ff' : '#ff007f',
-        hologram: Math.random() > 0.4,
-        hologramColor: bannerColor,
-        hologramType: Math.floor(Math.random() * 3), // 0: vertical kanji, 1: cyber visor mask, 2: digital bar
-        layer: 'mid'
+        x: i * 180 + Math.random() * 50,
+        width: Math.random() * 100 + 80,
+        height: Math.random() * 100 + 60,
+        speed: 0.4,
+        color: 'rgba(13, 2, 33, 0.65)',
+        gridColor: 'rgba(0, 240, 255, 0.08)',
+        laserTrim: Math.random() > 0.5
       });
     }
-
-    // 5. Monorails pool
-    this.trains = [];
-    this.trainSpawnTimer = 0;
   }
 
   resize(width, height) {
+    // Reinitialize positions to fit the new aspect ratios
     this.init();
   }
 
   update(gameSpeed, deltaTime) {
-    const w = this.canvas.clientWidth || 800;
-    const h = this.canvas.clientHeight || 400;
-    const dtRatio = deltaTime / 16.6;
-    
-    this.animTime += deltaTime * 0.015;
-
-    // 1. Update stars
+    // Update stars
     this.stars.forEach(star => {
-      star.x -= gameSpeed * star.speed * dtRatio;
-      if (star.x < -10) star.x = w + 10;
+      star.x -= gameSpeed * star.speed * (deltaTime / 16.6);
+      if (star.x < 0) star.x = this.canvas.clientWidth;
       
-      // Twinkle
-      star.brightness += (Math.random() - 0.5) * 0.06;
-      star.brightness = Math.max(0.3, Math.min(1.0, star.brightness));
+      // Star twinkling
+      star.brightness += (Math.random() - 0.5) * 0.05;
+      star.brightness = Math.max(0.3, Math.min(1, star.brightness));
     });
 
-    // 2. Update clouds
-    this.clouds.forEach(cloud => {
-      cloud.x -= gameSpeed * cloud.speed * dtRatio;
-      if (cloud.x + cloud.width < -50) {
-        cloud.x = w + Math.random() * 50;
-        cloud.y = Math.random() * (h * 0.35);
-      }
-    });
-
-    // 3. Update hovercars
-    this.hovercars.forEach(car => {
-      car.x += car.speed * dtRatio;
-      if (car.speed > 0 && car.x > w + 20) {
-        car.x = -20;
-        car.y = Math.random() * (h * 0.4) + h * 0.15;
-      } else if (car.speed < 0 && car.x < -20) {
-        car.x = w + 20;
-        car.y = Math.random() * (h * 0.4) + h * 0.15;
-      }
-    });
-
-    // 4. Update parallax skyline buildings
+    // Update buildings
     this.buildings.forEach(b => {
-      b.x -= gameSpeed * b.speed * dtRatio;
-      if (b.x + b.width < -10) {
-        b.x = w + Math.random() * 40;
+      b.x -= gameSpeed * b.speed * (deltaTime / 16.6);
+      const bWidth = b.width;
+      if (b.x + bWidth < 0) {
+        // Reset behind screen
+        b.x = this.canvas.clientWidth + Math.random() * 40;
       }
-    });
-
-    // 5. Update Monorail trains
-    this.trainSpawnTimer += deltaTime;
-    if (this.trainSpawnTimer >= this.trainSpawnInterval) {
-      this.trainSpawnTimer = 0;
-      // Spawn a new bullet train moving left-to-right or right-to-left
-      const direction = Math.random() > 0.5 ? 1 : -1;
-      this.trains.push({
-        x: direction > 0 ? -120 : w + 20,
-        width: 100,
-        height: 6,
-        speed: (gameSpeed * 1.5 + Math.random() * 2 + 1) * direction,
-        direction: direction,
-        active: true
-      });
-    }
-
-    this.trains.forEach(t => {
-      t.x += t.speed * dtRatio;
-    });
-    // Filter off-screen trains
-    this.trains = this.trains.filter(t => {
-      if (t.speed > 0) return t.x < w + 200;
-      return t.x > -200;
     });
   }
 
@@ -192,7 +96,6 @@ class ParallaxBackground {
     const ctx = this.ctx;
     const w = this.canvas.clientWidth;
     const h = this.canvas.clientHeight;
-    const groundY = h * 0.82;
     
     // Theme details
     let primaryGlow = '#ff007f';
@@ -201,7 +104,7 @@ class ParallaxBackground {
     if (themeId === 'frozen-grid') { primaryGlow = '#00f5ff'; accentGlow = '#bd00ff'; }
     if (themeId === 'cyber-gold') { primaryGlow = '#ffd700'; accentGlow = '#ff003c'; }
 
-    // 1. Draw Twinkling Stars
+    // 1. Draw Twinkling Star Field
     ctx.fillStyle = '#ffffff';
     this.stars.forEach(star => {
       ctx.globalAlpha = star.brightness;
@@ -209,302 +112,95 @@ class ParallaxBackground {
     });
     ctx.globalAlpha = 1.0;
 
-    // 2. Draw Drifting Ambient Clouds
-    this.clouds.forEach(c => {
-      ctx.save();
-      ctx.globalAlpha = c.alpha;
-      const grad = ctx.createRadialGradient(
-        c.x + c.width/2, c.y + c.height/2, 5,
-        c.x + c.width/2, c.y + c.height/2, c.width/2
-      );
-      grad.addColorStop(0, accentGlow);
-      grad.addColorStop(1, 'transparent');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.ellipse(c.x + c.width/2, c.y + c.height/2, c.width/2, c.height/2, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-
-    // 3. Draw Giant Floating Crystalline Reactor Core (Upper Right Sky)
+    // 2. Draw Sun / Cyber Disc
     ctx.save();
-    const rx = w * 0.74;
-    const ry = h * 0.28;
-    const rSize = Math.min(w, h) * 0.12;
+    const sunX = w * 0.75;
+    const sunY = h * 0.35;
+    const sunR = Math.min(w, h) * 0.15;
     
-    // Slow float bobbing offset
-    const bobOffset = Math.sin(this.animTime * 0.5) * 5;
-    const coreY = ry + bobOffset;
-    
-    // Draw background nebula aura
-    const auraGrad = ctx.createRadialGradient(rx, coreY, 2, rx, coreY, rSize * 1.8);
-    auraGrad.addColorStop(0, 'rgba(189, 0, 255, 0.12)'); 
-    auraGrad.addColorStop(0.4, `rgba(${themeId === 'cyber-gold' ? '255, 0, 60' : '0, 240, 255'}, 0.05)`);
-    auraGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = auraGrad;
+    // Draw retro sunset bands
     ctx.beginPath();
-    ctx.arc(rx, coreY, rSize * 1.8, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2);
+    const sunGrad = ctx.createLinearGradient(sunX, sunY - sunR, sunX, sunY + sunR);
+    sunGrad.addColorStop(0, '#ffd700');
+    sunGrad.addColorStop(0.5, primaryGlow);
+    sunGrad.addColorStop(1, '#1b003a');
+    ctx.fillStyle = sunGrad;
     
-    // Draw outer rotating triangle (clockwise)
-    ctx.strokeStyle = primaryGlow;
-    ctx.lineWidth = 1.5;
-    ctx.save();
-    ctx.translate(rx, coreY);
-    ctx.rotate(this.animTime * 0.08);
-    drawGlow(ctx, primaryGlow, 10, () => {
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const theta = (i / 3) * Math.PI * 2;
-        const tx = Math.cos(theta) * rSize;
-        const ty = Math.sin(theta) * rSize;
-        if (i === 0) ctx.moveTo(tx, ty);
-        else ctx.lineTo(tx, ty);
-      }
-      ctx.closePath();
-      ctx.stroke();
-    });
-    ctx.restore();
-
-    // Draw inner rotating triangle (counter-clockwise)
-    ctx.strokeStyle = accentGlow;
-    ctx.lineWidth = 1.2;
-    ctx.save();
-    ctx.translate(rx, coreY);
-    ctx.rotate(-this.animTime * 0.12);
-    drawGlow(ctx, accentGlow, 8, () => {
-      ctx.beginPath();
-      for (let i = 0; i < 3; i++) {
-        const theta = (i / 3) * Math.PI * 2 + Math.PI; 
-        const tx = Math.cos(theta) * (rSize * 0.65);
-        const ty = Math.sin(theta) * (rSize * 0.65);
-        if (i === 0) ctx.moveTo(tx, ty);
-        else ctx.lineTo(tx, ty);
-      }
-      ctx.closePath();
-      ctx.stroke();
-    });
-    ctx.restore();
-
-    // Draw central electric plasma sphere
-    const sphereGrad = ctx.createRadialGradient(rx, coreY, 1, rx, coreY, rSize * 0.35);
-    sphereGrad.addColorStop(0, '#ffffff');
-    sphereGrad.addColorStop(0.3, accentGlow);
-    sphereGrad.addColorStop(0.8, primaryGlow);
-    sphereGrad.addColorStop(1, 'transparent');
-    ctx.fillStyle = sphereGrad;
-    drawGlow(ctx, accentGlow, 12, () => {
-      ctx.beginPath();
-      ctx.arc(rx, coreY, rSize * 0.35, 0, Math.PI * 2);
+    drawGlow(ctx, primaryGlow, 15, () => {
       ctx.fill();
     });
 
-    // Draw electric spark arcs branching out
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 1.0;
-    ctx.beginPath();
-    for (let i = 0; i < 4; i++) {
-      const angle = (i / 4) * Math.PI * 2 + this.animTime * 0.2;
-      const len = rSize * (0.6 + Math.random() * 0.25);
-      const bx = rx + Math.cos(angle) * (rSize * 0.2);
-      const by = coreY + Math.sin(angle) * (rSize * 0.2);
-      const ex = rx + Math.cos(angle) * len;
-      const ey = coreY + Math.sin(angle) * len;
-      
-      ctx.moveTo(bx, by);
-      const mx = (bx + ex) / 2 + (Math.random() - 0.5) * 8;
-      const my = (by + ey) / 2 + (Math.random() - 0.5) * 8;
-      ctx.lineTo(mx, my);
-      ctx.lineTo(ex, ey);
+    // Retro lines slice
+    ctx.fillStyle = '#000000';
+    ctx.globalCompositeOperation = 'destination-out';
+    for (let i = 1; i < 8; i++) {
+      const sliceY = sunY - sunR + (sunR * 2) * (i / 8);
+      const sliceH = i * 1.5;
+      ctx.fillRect(sunX - sunR - 10, sliceY, sunR * 2 + 20, sliceH);
     }
-    ctx.stroke();
     ctx.restore();
+    ctx.globalCompositeOperation = 'source-over';
 
-    // 4. Draw Thick Sweeping Cyber Cables (Bezier drops in far background)
-    ctx.strokeStyle = 'rgba(15, 6, 36, 0.85)';
-    ctx.lineWidth = 2.0;
-    ctx.beginPath();
-    ctx.moveTo(0, h * 0.15);
-    ctx.bezierCurveTo(w * 0.2, h * 0.45, w * 0.35, h * 0.45, w * 0.5, h * 0.2);
-    ctx.moveTo(w * 0.25, h * 0.25);
-    ctx.bezierCurveTo(w * 0.45, h * 0.55, w * 0.65, h * 0.55, w * 0.8, h * 0.25);
-    ctx.stroke();
-
-    // 5. Draw Parallax silhouetted Skyline Buildings
+    // 3. Draw Buildings (Parallax layers)
     this.buildings.forEach(b => {
-      ctx.save();
       ctx.fillStyle = b.color;
       ctx.strokeStyle = b.gridColor;
-      ctx.lineWidth = b.layer === 'far' ? 1.0 : 1.5;
-      
-      ctx.beginPath();
-      ctx.rect(b.x, groundY - b.height, b.width, b.height);
-      ctx.fill();
-      ctx.stroke();
-
-      if (b.layer === 'mid') {
-        ctx.beginPath();
-        ctx.rect(b.x, groundY - b.height, b.width, b.height);
-        ctx.clip();
-
-        ctx.strokeStyle = b.gridColor;
-        ctx.lineWidth = 0.5;
-        for (let y = groundY - b.height + 12; y < groundY; y += 14) {
-          ctx.beginPath();
-          ctx.moveTo(b.x, y);
-          ctx.lineTo(b.x + b.width, y);
-          ctx.stroke();
-        }
-        for (let x = b.x + 12; x < b.x + b.width; x += 16) {
-          ctx.beginPath();
-          ctx.moveTo(x, groundY - b.height);
-          ctx.lineTo(x, groundY);
-          ctx.stroke();
-        }
-
-        if (b.laserTrim) {
-          ctx.strokeStyle = b.laserTrimColor;
-          ctx.lineWidth = 2.0;
-          drawGlow(ctx, b.laserTrimColor, 6, () => {
-            ctx.beginPath();
-            ctx.moveTo(b.x, groundY - b.height);
-            ctx.lineTo(b.x + b.width, groundY - b.height);
-            ctx.stroke();
-          });
-        }
-
-        if (b.hologram) {
-          ctx.save();
-          ctx.globalAlpha = 0.55 + Math.sin(this.animTime * 4 + b.x) * 0.15; 
-          ctx.fillStyle = b.hologramColor;
-          ctx.strokeStyle = b.hologramColor;
-          
-          const bx = b.x + b.width * 0.35;
-          const by = groundY - b.height * 0.75;
-          const bw = 20;
-          const bh = b.height * 0.5;
-          
-          if (b.hologramType === 0) {
-            ctx.fillStyle = 'rgba(12, 4, 30, 0.45)';
-            ctx.strokeStyle = b.hologramColor;
-            ctx.lineWidth = 1.0;
-            ctx.beginPath();
-            ctx.roundRect(bx - 4, by, bw + 8, bh, 3);
-            ctx.fill();
-            ctx.stroke();
-
-            ctx.fillStyle = b.hologramColor;
-            ctx.font = '700 8px "Outfit", sans-serif';
-            ctx.textAlign = 'center';
-            drawGlow(ctx, b.hologramColor, 5, () => {
-              const chars = ['マ', 'ン', 'デ', 'ル', 'キ', 'テ', 'ィ'];
-              for (let i = 0; i < chars.length; i++) {
-                ctx.fillText(chars[i], bx + bw/2, by + 12 + i * 9);
-              }
-            });
-          } else if (b.hologramType === 1) {
-            const cx = b.x + b.width * 0.5;
-            const cy = groundY - b.height * 0.6;
-            ctx.strokeStyle = b.hologramColor;
-            ctx.lineWidth = 1.5;
-            drawGlow(ctx, b.hologramColor, 8, () => {
-              ctx.beginPath();
-              ctx.arc(cx, cy, 10, 0, Math.PI * 2);
-              ctx.stroke();
-              ctx.fillStyle = b.hologramColor;
-              ctx.fillRect(cx - 7, cy - 2, 14, 4);
-            });
-          } else {
-            const ax = b.x + b.width * 0.2;
-            const ay = groundY - b.height * 0.65;
-            ctx.fillStyle = b.hologramColor;
-            drawGlow(ctx, b.hologramColor, 6, () => {
-              for (let i = 0; i < 4; i++) {
-                const barH = 15 + Math.sin(this.animTime * 5 + i * 1.5) * 12;
-                ctx.fillRect(ax + i * 8, ay + (25 - barH), 4, barH);
-              }
-            });
-          }
-          ctx.restore();
-        }
-      }
-      ctx.restore();
-    });
-
-    // 6. Draw Far Background Drifting Hovercars
-    this.hovercars.forEach(car => {
-      ctx.save();
-      ctx.fillStyle = car.color;
-      drawGlow(ctx, car.color, 4, () => {
-        ctx.fillRect(car.x, car.y, car.width, car.height);
-        ctx.fillStyle = '#ffffff';
-        const headlightX = car.speed > 0 ? car.x + car.width : car.x;
-        ctx.fillRect(headlightX - 1, car.y + 0.5, 1.5, car.height - 1);
-      });
-      ctx.restore();
-    });
-
-    // 7. Draw Elevated Monorail Track Horizontal Beams
-    ctx.save();
-    const trackY = groundY - 110;
-    ctx.strokeStyle = '#1b142c';
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.moveTo(0, trackY);
-    ctx.lineTo(w, trackY);
-    ctx.stroke();
-
-    ctx.strokeStyle = 'rgba(0, 240, 255, 0.08)';
-    ctx.lineWidth = 0.5;
-    ctx.beginPath();
-    ctx.moveTo(0, trackY + 3);
-    ctx.lineTo(w, trackY + 3);
-    ctx.stroke();
-
-    for (let x = 60; x < w; x += 180) {
-      ctx.beginPath();
-      ctx.moveTo(x, trackY);
-      ctx.lineTo(x, groundY);
-      ctx.stroke();
-    }
-    ctx.restore();
-
-    // 8. Draw Drifting Monorail Trains
-    this.trains.forEach(t => {
-      ctx.save();
-      ctx.fillStyle = 'rgba(12, 4, 30, 0.95)';
-      ctx.strokeStyle = accentGlow;
       ctx.lineWidth = 1.5;
       
-      const ty = trackY - t.height;
-      drawGlow(ctx, accentGlow, 8, () => {
-        ctx.beginPath();
-        ctx.roundRect(t.x, ty, t.width, t.height, 2);
-        ctx.fill();
-        ctx.stroke();
-      });
-
-      ctx.fillStyle = accentGlow;
+      // Draw building base structure
       ctx.beginPath();
-      for (let i = 0; i < 4; i++) {
-        const wx = t.x + 8 + i * 22;
-        ctx.roundRect(wx, ty + 1.5, 15, 2.5, 0.5);
-      }
+      ctx.rect(b.x, h - b.height, b.width, b.height);
       ctx.fill();
+      ctx.stroke();
+
+      // Cyber grid lines inside the building
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(b.x, h - b.height, b.width, b.height);
+      ctx.clip();
+      
+      // Draw horizontal window lines
+      ctx.strokeStyle = b.gridColor;
+      ctx.lineWidth = 0.5;
+      for (let y = h - b.height + 15; y < h; y += 12) {
+        ctx.beginPath();
+        ctx.moveTo(b.x, y);
+        ctx.lineTo(b.x + b.width, y);
+        ctx.stroke();
+      }
+      // Draw vertical columns
+      for (let x = b.x + 15; x < b.x + b.width; x += 20) {
+        ctx.beginPath();
+        ctx.moveTo(x, h - b.height);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
       ctx.restore();
+
+      // Top glowing neon trim for medium building layers
+      if (b.laserTrim) {
+        ctx.strokeStyle = accentGlow;
+        ctx.lineWidth = 2;
+        drawGlow(ctx, accentGlow, 6, () => {
+          ctx.beginPath();
+          ctx.moveTo(b.x, h - b.height);
+          ctx.lineTo(b.x + b.width, h - b.height);
+          ctx.stroke();
+        });
+      }
     });
 
-    // 9. Ground Horizon Blend line (Dark boundary)
-    ctx.save();
+    // 4. Ground Grid Horizon Blur Blend
+    const groundY = h * 0.85;
     ctx.beginPath();
     ctx.rect(0, groundY, w, h - groundY);
     const floorGrad = ctx.createLinearGradient(0, groundY, 0, h);
     floorGrad.addColorStop(0, '#000000');
-    floorGrad.addColorStop(0.12, 'rgba(8,3,24,0.92)');
-    floorGrad.addColorStop(1, 'rgba(0,0,0,0.98)');
+    floorGrad.addColorStop(0.1, 'rgba(10,5,30,0.85)');
+    floorGrad.addColorStop(1, 'rgba(0,0,0,0.95)');
     ctx.fillStyle = floorGrad;
     ctx.fill();
-    ctx.restore();
   }
 }
 
