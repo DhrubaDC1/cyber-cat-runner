@@ -188,6 +188,16 @@ class CyberAuthManager {
 
   // Secure / Upgrade Guest Account
   async upgradeGuest(password) {
+    const token = window.CyberStorage.data.authToken;
+    const username = window.CyberStorage.data.username;
+    const displayName = window.CyberStorage.data.displayName;
+
+    // If they have no server-side guest token (e.g. registered offline fallback)
+    if (!token) {
+      console.log("[AUTH] No active session token found. Initializing new secure profile registration.");
+      return await this.registerSecure(displayName, username, password);
+    }
+
     try {
       const res = await fetch(`${this.apiBase}/secure-account`, {
         method: 'POST',
