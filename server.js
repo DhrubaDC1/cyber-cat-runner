@@ -404,19 +404,27 @@ app.get('/api/me', authenticateToken, async (req, res) => {
   }
 });
 
-// Serve compiled static assets
+// Serve compiled static assets (Local fallback only, Vercel routes static files automatically)
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-// Spin up mainframe connection
-initDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`MAINFRAME API SERVER (SPACETIMEDB GATEWAY) LIVE ON PORT http://localhost:${PORT}`);
+// Export app for Vercel Serverless Function compatibility
+module.exports = app;
+
+// Local environment spin up check
+if (require.main === module) {
+  initDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`MAINFRAME API SERVER (SPACETIMEDB GATEWAY) LIVE ON PORT http://localhost:${PORT}`);
+    });
+  }).catch(err => {
+    console.error('Server startup crash occurred:', err);
+    process.exit(1);
   });
-}).catch(err => {
-  console.error('Server startup crash occurred:', err);
-  process.exit(1);
-});
+} else {
+  // Silent boot diagnostic check for serverless contexts
+  initDB().catch(console.error);
+}
