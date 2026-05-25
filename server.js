@@ -44,13 +44,43 @@ async function querySpacetimeDB(sql) {
     }
 
     try {
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].rows) {
+        return parsed[0].rows;
+      }
+      return [];
     } catch (e) {
       console.warn('[SPACETIMEDB] Returned non-JSON body:', text);
       return [];
     }
   } catch (error) {
     console.error(`[SPACETIMEDB ERROR] Query failed: ${sql}`);
+    console.error(`[SPACETIMEDB ERROR] Details: ${error.message}`);
+    throw error;
+  }
+}
+
+// SpacetimeDB REST Reducer Call Executor
+async function callSpacetimeDBReducer(reducerName, args) {
+  try {
+    const url = `${SPACETIMEDB_URI}/v1/database/${SPACETIMEDB_DB_NAME}/call/${reducerName}`;
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(args)
+    });
+
+    const text = await res.text();
+    if (!res.ok) {
+      throw new Error(`SpacetimeDB Call Error: ${text}`);
+    }
+
+    return text;
+  } catch (error) {
+    console.error(`[SPACETIMEDB ERROR] Reducer call failed: ${reducerName}`);
     console.error(`[SPACETIMEDB ERROR] Details: ${error.message}`);
     throw error;
   }
@@ -99,7 +129,7 @@ async function initDB() {
   
   try {
     // Run basic select count check to test if users table is published and reachable
-    await querySpacetimeDB('SELECT COUNT(*) FROM users');
+    await querySpacetimeDB('SELECT COUNT(*) AS count FROM users');
     console.log('[SPACETIMEDB INIT] Connection active! Schema table "users" is live.');
   } catch (err) {
     console.warn('\n==================================================================');
@@ -138,19 +168,20 @@ app.post('/api/register-guest', async (req, res) => {
       return res.status(400).json({ error: 'Username and display name are required' });
     }
 
-    const safeUsername = escapeSqlString(username);
-    const safeDisplayName = escapeSqlString(displayName);
-    const skinsJson = escapeSqlString(JSON.stringify(unlockedSkins || ['neon-classic']));
-    const trailsJson = escapeSqlString(JSON.stringify(unlockedTrails || ['exhaust-default']));
-
     const scoreInt = Math.floor(Number(highScore || 0));
     const gemsInt = Math.floor(Number(gems || 0));
 
-    // Insert guest row directly into SpacetimeDB
-    await querySpacetimeDB(
-      `INSERT INTO users (username, display_name, password_hash, high_score, gems, is_guest, unlocked_skins, unlocked_trails)
-       VALUES ('${safeUsername}', '${safeDisplayName}', '', ${scoreInt}, ${gemsInt}, true, '${skinsJson}', '${trailsJson}')`
-    );
+    // Insert guest row directly into SpacetimeDB using register_user reducer
+    await callSpacetimeDBReducer('register_user', [
+      username,
+      displayName,
+      '',
+      scoreInt,
+      gemsInt,
+      true,
+      JSON.stringify(unlockedSkins || ['neon-classic']),
+      JSON.stringify(unlockedTrails || ['exhaust-default'])
+    ]);
 
     const token = jwt.sign({ username, isGuest: true }, JWT_SECRET);
     res.status(201).json({
@@ -183,20 +214,20 @@ app.post('/api/register', async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const safeUsername = escapeSqlString(username);
-    const safeDisplayName = escapeSqlString(displayName);
-    const safePasswordHash = escapeSqlString(passwordHash);
-    const skinsJson = escapeSqlString(JSON.stringify(unlockedSkins || ['neon-classic']));
-    const trailsJson = escapeSqlString(JSON.stringify(unlockedTrails || ['exhaust-default']));
-
     const scoreInt = Math.floor(Number(highScore || 0));
     const gemsInt = Math.floor(Number(gems || 0));
 
-    // Insert secure row directly into SpacetimeDB
-    await querySpacetimeDB(
-      `INSERT INTO users (username, display_name, password_hash, high_score, gems, is_guest, unlocked_skins, unlocked_trails)
-       VALUES ('${safeUsername}', '${safeDisplayName}', '${safePasswordHash}', ${scoreInt}, ${gemsInt}, false, '${skinsJson}', '${trailsJson}')`
-    );
+    // Insert secure row directly into SpacetimeDB using register_user reducer
+    await callSpacetimeDBReducer('register_user', [
+      username,
+      displayName,
+      passwordHash,
+      scoreInt,
+      gemsInt,
+      false,
+      JSON.stringify(unlockedSkins || ['neon-classic']),
+      JSON.stringify(unlockedTrails || ['exhaust-default'])
+    ]);
 
     const token = jwt.sign({ username, isGuest: false }, JWT_SECRET);
     res.status(201).json({
@@ -283,14 +314,9 @@ app.post('/api/secure-account', authenticateToken, async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    const safePasswordHash = escapeSqlString(passwordHash);
 
-    // Update guest flags
-    await querySpacetimeDB(
-      `UPDATE users 
-       SET password_hash = '${safePasswordHash}', is_guest = false 
-       WHERE username = '${safeUsername}'`
-    );
+    // Update guest flags using secure_user reducer
+    await callSpacetimeDBReducer('secure_user', [username, passwordHash]);
 
     const token = jwt.sign({ username, isGuest: false }, JWT_SECRET);
 
@@ -333,14 +359,14 @@ app.post('/api/sync', authenticateToken, async (req, res) => {
     const serverTrails = JSON.parse(user.unlocked_trails || '["exhaust-default"]');
     const mergedTrails = Array.from(new Set([...serverTrails, ...(unlockedTrails || [])]));
 
-    const safeSkins = escapeSqlString(JSON.stringify(mergedSkins));
-    const safeTrails = escapeSqlString(JSON.stringify(mergedTrails));
-
-    await querySpacetimeDB(
-      `UPDATE users 
-       SET high_score = ${newHighScore}, gems = ${newGems}, unlocked_skins = '${safeSkins}', unlocked_trails = '${safeTrails}'
-       WHERE username = '${safeUsername}'`
-    );
+    // Update stats using update_stats reducer
+    await callSpacetimeDBReducer('update_stats', [
+      username,
+      newHighScore,
+      newGems,
+      JSON.stringify(mergedSkins),
+      JSON.stringify(mergedTrails)
+    ]);
 
     res.json({
       success: true,
@@ -358,15 +384,20 @@ app.post('/api/sync', authenticateToken, async (req, res) => {
 // Global rankings leaderboard fetch
 app.get('/api/leaderboard', async (req, res) => {
   try {
-    const rankings = await querySpacetimeDB(
-      `SELECT username, display_name, password_hash, high_score, gems, is_guest, unlocked_skins, unlocked_trails 
-       FROM users 
-       ORDER BY high_score DESC 
-       LIMIT 100`
-    );
+    const rankings = await querySpacetimeDB('SELECT * FROM users');
 
-    const results = rankings.map((row, index) => {
-      const mapped = mapRow(row);
+    const mappedRankings = rankings.map((row) => mapRow(row));
+
+    // Sort by highscore descending, then gems descending
+    mappedRankings.sort((a, b) => {
+      if (b.high_score !== a.high_score) {
+        return b.high_score - a.high_score;
+      }
+      return b.gems - a.gems;
+    });
+
+    // Limit to 100 and add rank
+    const results = mappedRankings.slice(0, 100).map((mapped, index) => {
       return {
         rank: index + 1,
         username: mapped.username,

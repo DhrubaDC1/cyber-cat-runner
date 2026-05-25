@@ -2,7 +2,7 @@ import { schema, table, t } from 'spacetimedb/server';
 
 // Define the SpacetimeDB relational schema for Cyber Cat user accounts
 const spacetimedb = schema({
-  users: table({ name: 'users' }, {
+  users: table({ name: 'users', public: true }, {
     username: t.string().primaryKey(),
     display_name: t.string(),
     password_hash: t.string(),
@@ -62,3 +62,20 @@ export const updateStats = spacetimedb.reducer(
     }
   }
 );
+
+// Reducer to upgrade a guest account to a secure account
+export const secureUser = spacetimedb.reducer(
+  {
+    username: t.string(),
+    passwordHash: t.string()
+  },
+  (ctx, data) => {
+    const user = ctx.db.users.username.find(data.username);
+    if (user) {
+      user.password_hash = data.passwordHash;
+      user.is_guest = false;
+      ctx.db.users.username.update(user);
+    }
+  }
+);
+
