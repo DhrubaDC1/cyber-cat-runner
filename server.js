@@ -143,10 +143,13 @@ app.post('/api/register-guest', async (req, res) => {
     const skinsJson = escapeSqlString(JSON.stringify(unlockedSkins || ['neon-classic']));
     const trailsJson = escapeSqlString(JSON.stringify(unlockedTrails || ['exhaust-default']));
 
+    const scoreInt = Math.floor(Number(highScore || 0));
+    const gemsInt = Math.floor(Number(gems || 0));
+
     // Insert guest row directly into SpacetimeDB
     await querySpacetimeDB(
       `INSERT INTO users (username, display_name, password_hash, high_score, gems, is_guest, unlocked_skins, unlocked_trails)
-       VALUES ('${safeUsername}', '${safeDisplayName}', '', ${highScore || 0}, ${gems || 0}, true, '${skinsJson}', '${trailsJson}')`
+       VALUES ('${safeUsername}', '${safeDisplayName}', '', ${scoreInt}, ${gemsInt}, true, '${skinsJson}', '${trailsJson}')`
     );
 
     const token = jwt.sign({ username, isGuest: true }, JWT_SECRET);
@@ -186,10 +189,13 @@ app.post('/api/register', async (req, res) => {
     const skinsJson = escapeSqlString(JSON.stringify(unlockedSkins || ['neon-classic']));
     const trailsJson = escapeSqlString(JSON.stringify(unlockedTrails || ['exhaust-default']));
 
+    const scoreInt = Math.floor(Number(highScore || 0));
+    const gemsInt = Math.floor(Number(gems || 0));
+
     // Insert secure row directly into SpacetimeDB
     await querySpacetimeDB(
       `INSERT INTO users (username, display_name, password_hash, high_score, gems, is_guest, unlocked_skins, unlocked_trails)
-       VALUES ('${safeUsername}', '${safeDisplayName}', '${safePasswordHash}', ${highScore || 0}, ${gems || 0}, false, '${skinsJson}', '${trailsJson}')`
+       VALUES ('${safeUsername}', '${safeDisplayName}', '${safePasswordHash}', ${scoreInt}, ${gemsInt}, false, '${skinsJson}', '${trailsJson}')`
     );
 
     const token = jwt.sign({ username, isGuest: false }, JWT_SECRET);
@@ -318,8 +324,8 @@ app.post('/api/sync', authenticateToken, async (req, res) => {
     }
 
     // High scores and gems resolution logic
-    const newHighScore = Math.max(user.high_score, highScore || 0);
-    const newGems = Math.max(user.gems, gems || 0);
+    const newHighScore = Math.floor(Math.max(user.high_score, Number(highScore || 0)));
+    const newGems = Math.floor(Math.max(user.gems, Number(gems || 0)));
 
     const serverSkins = JSON.parse(user.unlocked_skins || '["neon-classic"]');
     const mergedSkins = Array.from(new Set([...serverSkins, ...(unlockedSkins || [])]));
