@@ -1,18 +1,20 @@
 import { schema, table, t } from 'spacetimedb/server';
 
 // Define the SpacetimeDB relational schema for Cyber Cat user accounts
-export const spacetimedb = schema(
-  table({ name: 'users', primaryKey: 'username' }, {
-    username: t.string(),
+const spacetimedb = schema({
+  users: table({ name: 'users' }, {
+    username: t.string().primaryKey(),
     display_name: t.string(),
     password_hash: t.string(),
-    high_score: t.int32(),
-    gems: t.int32(),
+    high_score: t.i32(),
+    gems: t.i32(),
     is_guest: t.bool(),
     unlocked_skins: t.string(),  // JSON array stringified
     unlocked_trails: t.string(), // JSON array stringified
   })
-);
+});
+
+export default spacetimedb;
 
 // Reducer to insert a new user profile
 export const registerUser = spacetimedb.reducer(
@@ -20,8 +22,8 @@ export const registerUser = spacetimedb.reducer(
     username: t.string(),
     displayName: t.string(),
     passwordHash: t.string(),
-    highScore: t.int32(),
-    gems: t.int32(),
+    highScore: t.i32(),
+    gems: t.i32(),
     isGuest: t.bool(),
     unlockedSkins: t.string(),
     unlockedTrails: t.string()
@@ -44,19 +46,19 @@ export const registerUser = spacetimedb.reducer(
 export const updateStats = spacetimedb.reducer(
   {
     username: t.string(),
-    highScore: t.int32(),
-    gems: t.int32(),
+    highScore: t.i32(),
+    gems: t.i32(),
     unlockedSkins: t.string(),
     unlockedTrails: t.string()
   },
   (ctx, data) => {
-    const user = ctx.db.users.find(data.username);
+    const user = ctx.db.users.username.find(data.username);
     if (user) {
       user.high_score = Math.max(user.high_score, data.highScore);
       user.gems = Math.max(user.gems, data.gems);
       user.unlocked_skins = data.unlockedSkins;
       user.unlocked_trails = data.unlockedTrails;
-      ctx.db.users.update(user);
+      ctx.db.users.username.update(user);
     }
   }
 );

@@ -123,6 +123,7 @@ class CyberGameEngine {
       mute: document.getElementById('mute-btn'),
       rt: document.getElementById('rt-btn'),
       theme: document.getElementById('theme-btn'),
+      fullscreen: document.getElementById('fullscreen-btn'),
       tabSkins: document.getElementById('tab-skins'),
       tabTrails: document.getElementById('tab-trails'),
       leaderboardToggle: document.getElementById('btn-leaderboard-toggle'),
@@ -360,6 +361,12 @@ class CyberGameEngine {
     this.buttons.theme.addEventListener('click', () => {
       this.cycleTheme();
     });
+    if (this.buttons.fullscreen) {
+      this.buttons.fullscreen.addEventListener('click', () => {
+        window.CyberAudio.playClick();
+        this.toggleFullscreen();
+      });
+    }
 
     // Theme Picker listeners
     document.querySelectorAll('.theme-card').forEach(card => {
@@ -410,6 +417,8 @@ class CyberGameEngine {
       this.renderShopTrails();
       window.CyberAudio.playClick();
     });
+
+    this.setupFullscreenListener();
   }
 
   cycleTheme() {
@@ -428,6 +437,49 @@ class CyberGameEngine {
       const themeAttr = card.getAttribute('data-theme');
       card.classList.toggle('active', themeAttr === nextTheme);
     });
+  }
+
+  toggleFullscreen() {
+    const doc = window.document;
+    const docEl = doc.documentElement;
+
+    const requestFullScreen = docEl.requestFullscreen || docEl.mozRequestFullScreen || docEl.webkitRequestFullScreen || docEl.msRequestFullscreen;
+    const cancelFullScreen = doc.exitFullscreen || doc.mozCancelFullScreen || doc.webkitExitFullscreen || doc.msExitFullscreen;
+
+    const isFullscreen = !!(doc.fullscreenElement || doc.mozFullScreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement);
+
+    if (!isFullscreen) {
+      if (requestFullScreen) {
+        requestFullScreen.call(docEl).catch(err => {
+          console.error(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      }
+    } else {
+      if (cancelFullScreen) {
+        cancelFullScreen.call(doc);
+      }
+    }
+  }
+
+  setupFullscreenListener() {
+    const handleFullscreenChange = () => {
+      const isFullscreen = !!(document.fullscreenElement || document.mozFullScreenElement || document.webkitFullscreenElement || document.msFullscreenElement);
+      
+      if (this.buttons.fullscreen) {
+        this.buttons.fullscreen.classList.toggle('active-setting', isFullscreen);
+        const iconSpan = this.buttons.fullscreen.querySelector('.icon-fullscreen');
+        if (iconSpan) {
+          iconSpan.innerHTML = isFullscreen ? '🗗' : '⛶';
+        }
+        this.buttons.fullscreen.setAttribute('title', isFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen');
+        this.buttons.fullscreen.setAttribute('aria-label', isFullscreen ? 'Exit Fullscreen' : 'Toggle Fullscreen');
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+    document.addEventListener('MSFullscreenChange', handleFullscreenChange);
   }
 
   updateActiveThemeStyle(themeId) {

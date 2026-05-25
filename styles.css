@@ -196,6 +196,19 @@ body {
   }
 }
 
+/* Fullscreen arcade mode constraints override */
+:fullscreen #app-container,
+:-webkit-full-screen #app-container,
+:-moz-full-screen #app-container,
+:-ms-fullscreen #app-container {
+  width: 100vw;
+  height: 100vh;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
 /* ==========================================================================
    HEADER & STATS BAR
    ========================================================================== */
